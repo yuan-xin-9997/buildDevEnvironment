@@ -92,3 +92,19 @@ make && make install
 
 
 # node.js
+
+
+# tomcat
+cd ~/soft/
+wget https://dlcdn.apache.org/tomcat/tomcat-10/v10.1.9/bin/apache-tomcat-10.1.9.tar.gz
+tar -zxvf apache-tomcat-10.1.9.tar.gz -C /usr/local
+# 在/etc/profile添加：
+export TOMCAT_HOME=/usr/local/apache-tomcat-10.1.9
+export PATH=$TOMCAT_HOME/bin:$PATH
+export JAVA_HOME=/usr/java/jdk-20
+# /etc/proile << EOF
+# export TOMCAT_HOME=/usr/local/apache-tomcat-10.1.9
+# export PATH=$TOMCAT_HOME/bin:$PATH
+# EOF
+startup.sh
+curl localhost:8080
