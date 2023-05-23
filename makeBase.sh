@@ -5,6 +5,7 @@
 yum install -y lrzsz
 yum install -y telnet  # telnet
 yum install -y install dos2unix*
+yum install net-tools
 
 # wireguard
 # yum install -y yum-utils epel-release
