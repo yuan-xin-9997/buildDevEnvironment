@@ -90,7 +90,15 @@ make && make install
 
 
 # redis
-
+cd ~/soft/
+wget https://codeload.github.com/redis/redis/tar.gz/refs/tags/7.0.11
+mv 7.0.11 redis-7.0.11.tar.gz
+tar -xzvf redis-7.0.11.tar.gz
+cd redis-7.0.11
+yum install gcc-c++ -y
+make
+make
+make install
 
 # node.js
 
