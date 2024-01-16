@@ -1,0 +1,9 @@
+---
+- name: 停止MySQL数据库
+  hosts: hadoop
+  tasks:
+          - name: 停止MySQL数据库任务
+            service:
+                    name: mariadb
+                    state: stopped
+...

@@ -1,0 +1,17 @@
+---
+- hosts: hadoop
+  remote_user: root
+  tasks:
+    - name: install nginx        ##安装模块，需要在被控主机里加上nginx的源
+      yum: name=nginx state=present
+    - name: copy nginx.conf    ##复制nginx的配置文件过去，需要在本机的/tmp目录下编辑nginx.conf
+      copy: src=/tmp/nginx.conf dest=/etc/nginx/nginx.conf backup=yes
+      notify: reload    #当nginx.conf发生改变时，通知给相应的handlers
+      tags: reloadnginx    #打标签
+    - name: start nginx service    #服务启动模块
+      service: name=nginx state=started
+      tags: startnginx    #打标签
+
+  handlers:
+    - name: reload
+      service: name=nginx state=restarted

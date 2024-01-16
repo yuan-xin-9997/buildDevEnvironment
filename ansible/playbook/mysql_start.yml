@@ -1,0 +1,10 @@
+---
+- name: 启动MySQL数据库
+  hosts: hadoop
+  tasks:
+          - name: 启动MySQL数据库任务
+            service:
+                    name: mariadb
+                    state: started
+                    enabled: yes
+...

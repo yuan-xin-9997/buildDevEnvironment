@@ -1,0 +1,7 @@
+---
+- hosts: hadoop
+  remote_user: root
+  tasks:
+    - name: ensure docker is the latest version
+      yum: name=docker state=latest skip_broken=yes
+     

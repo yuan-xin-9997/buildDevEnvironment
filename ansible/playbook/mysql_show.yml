@@ -1,0 +1,8 @@
+---
+- name: 显示MySQL数据库运行状态
+  hosts: hadoop
+  tasks:
+          - name: 显示MySQL数据库状态任务
+            command:
+                    cmd: systemctl status mariadb
+...

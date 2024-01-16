@@ -1,0 +1,8 @@
+---
+- name: 安装MySQL数据库
+  hosts: hadoop
+  tasks:
+          - name: 安装MySQL数据库任务
+            yum:
+                    name: mariadb-server
+                    state: latest

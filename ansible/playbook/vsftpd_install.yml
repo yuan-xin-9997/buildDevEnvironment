@@ -1,0 +1,7 @@
+---
+- hosts: hadoop
+  remote_user: root
+  tasks:
+    - name: ensure vsftpd is the latest version
+      yum: name=vsftpd state=latest skip_broken=yes
+...
