@@ -1,0 +1,19 @@
+---
+- hosts: hadoop
+  tasks:
+      - name: installmariadb
+        yum: 
+            name: mariadb-server
+            state: latest
+        tag: installmariadb
+      - name: startmariadb
+        service: 
+            name: mariadb
+            state: started
+        tag: startmariadb
+      - name: stopmariadb
+        service: 
+            name: mariadb
+            state: stopped
+        tag: stopmariadb
+    

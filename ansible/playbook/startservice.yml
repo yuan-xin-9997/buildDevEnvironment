@@ -1,9 +1,0 @@
----
-- name: 启动服务
-  hosts: hadoop
-  tasks:
-          - name: one
-            service:
-                  name: mariadb
-                  state: started
-                  enabled: yes

@@ -1,0 +1,12 @@
+---
+- name: 停止指定服务（外部传入）
+  remote_user: root
+  hosts: hadoop
+  vars:
+    - rpmname: keepalived
+  tasks:
+          - name: 停止{{service}}服务任务，这是一个内部变量 {{ rpmname }}
+            service:
+                    name: "{{ service }}"
+                    state: stopped
+...

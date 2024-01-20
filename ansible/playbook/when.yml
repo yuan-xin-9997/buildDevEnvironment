@@ -1,0 +1,9 @@
+- hosts: hadoop
+  remote_user: root
+  tasks:
+  - name: createfile
+    copy: content="test3" dest=/opt/p1.yml
+    when: a=='3'
+  - name: createfile
+    copy: content="test4" dest=/opt/p1.yml
+    when: a=='4'

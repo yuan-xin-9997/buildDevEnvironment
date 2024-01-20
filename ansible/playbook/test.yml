@@ -1,0 +1,18 @@
+---
+- hosts: hadoop
+  remote_user: root
+  tasks:
+
+    - name: install {{ rpmname }}
+      yum: name={{ rpmname }} state=present
+    - name: copy {{ rpmname }}.conf
+      copy: src=/tmp/{{ rpmname }}.conf dest=/etc/{{ rpmname }}/{{ rpmname }}.conf backup=yes
+      notify: reload
+      tags: reload{{ rpmname }}
+    - name: start {{ rpmname }} service
+      service: name={{ rpmname }} state=started
+      tags: start{{ rpmname }}
+
+  handlers:
+    - name: reload
+      service: name={{ rpmname }} state=restarted
