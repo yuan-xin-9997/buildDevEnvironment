@@ -129,7 +129,7 @@ Michael DeHaan（ Cobbler 与 Func 作者）
 官方文档：https://docs.ansible.com/
 同类自动化工具GitHub关注程度（2016-07-10）
 ```
-![image](https://note.youdao.com/yws/res/100107/D651B3E163FC4316970259344AA207AB)
+![](.\img\Ansible Github.png)
 
 ### 特性
 ```
@@ -148,7 +148,7 @@ Michael DeHaan（ Cobbler 与 Func 作者）
 ```
 
 ### Ansible架构
-![image](https://note.youdao.com/yws/res/100099/391475DC87174BDDB90DA6D102152C03)
+![](.\img\Ansible架构.png)
 ```
 ansible的作用以及工作结构
 1、ansible简介：
@@ -167,7 +167,7 @@ ansible是基于模块工作的，本身没有批量部署的能力。
 2、ansible的架构：连接其他主机默认使用ssh协议	
 ```
 ### Ansible工作原理
-![image](https://note.youdao.com/yws/res/100103/AA46E01927FE4081962455C8FCC8FD00)
+![](./img/Ansible工作原理.png)
 
 ### Ansible主要组成部分
 ```
@@ -347,6 +347,9 @@ ansible +被管理的主机(ALL) +模块  +参数
     -b, --become           代替旧版的sudo切换
         --become-user=USERNAME 指定sudo的runas用户,默认为root
     -K, --ask-become-pass  提示输入sudo时的口令
+    -i INVENTORY, --inventory INVENTORY, --inventory-file INVENTORY
+                  specify inventory host path or comma separated host
+                        list. --inventory-file is deprecated
 ```
 ```
 ansible all --list  列出所有主机
