@@ -329,7 +329,7 @@ ansible-doc: 显示模块帮助
     ansible-doc -s ping 查看指定模块帮助用法
 ```
 
-### ansible
+### ansible 命令
 ```
 ansible通过ssh实现配置管理、应用部署、任务执行等功能，
 建议配置ansible端能基于密钥认证的方式联系各被管理节点
@@ -433,16 +433,25 @@ ansible ping模块测试连接
 Command：在远程主机执行命令，默认模块，可忽略-m选项
     > ansible srvs -m command -a 'service vsftpd start'
     > ansible srvs -m command -a 'echo adong |passwd --stdin 123456'
+
 此命令不支持 $VARNAME < > | ; & 等,用shell模块实现
 
     chdir:   进入到被管理主机目录
     creates: 如果有一个目录是存在的,步骤将不会运行Command命令
+    removes: A filename or (since 2.0) glob pattern. If it already exists, this step *will* be run.        [Default: (null)        type: path
     ansible websrvs -a 'chdir=/data/ ls'
+    ansible all -m command -a 'removes=/etc/fastab cat /etc/fstab'
+    ansible all -m command -a 'creates=/etc/sysconfig cat /etc/fstab'
+    ansible all -m command -a 'chdir=/boot ls'
+    ansible 192.168.10.102 -m command -a 'chdir=/home/atguigu/bin ./ntp.sh'
 
 Shell：和command相似，用shell执行命令
     > ansible all -m shell  -a 'getenforce'  查看SELINUX状态
     >  ansible all -m shell  -a "sed -i 's/SELINUX=.*/SELINUX=disabled' /etc/selinux/config"
     > ansible srv -m shell -a 'echo magedu |passwd –stdin wang'
+    > ansible all -m shell -a '> /data/f1'
+    > ansible all -m shell -a 'ls /data'
+    > ansible all -m shell -a '/home/atguigu/bin/my_hadoop.sh show'
       
     调用bash执行命令 类似 cat /tmp/stanley.md | awk -F'|' '{print $1,$2}' &> /tmp/example.txt     
     这些复杂命令，即使使用shell也可能会失败，
@@ -455,6 +464,7 @@ Shell：和command相似，用shell执行命令
 Script：在远程主机上运行ansible服务器上的脚本
     > -a "/PATH/TO/SCRIPT_FILE"
     > ansible websrvs -m script -a /data/test.sh
+    > ansible all -m script -a './host.sh'
 
 Copy：从主控端复制文件到远程主机
       src : 源文件  指定拷贝文件的本地路径  (如果有/ 则拷贝目录内容,比拷贝目录本身)
