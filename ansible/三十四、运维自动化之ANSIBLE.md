@@ -491,6 +491,9 @@ File：设置文件属性
     src:  创建硬链接,软链接时,指定源目标,配合'state=link' 'state=hard' 设置软链接,硬链接
     state: 状态
           absent 缺席,删除
+          directory: 创建目录
+          touch: 创建空文件
+          link: 创建软链接
           
     > ansible websrvs -m file -a 'path=/app/test.txt state=touch'       创建文件
     > ansible websrvs -m file -a "path=/data/testdir state=directory"   创建目录    
