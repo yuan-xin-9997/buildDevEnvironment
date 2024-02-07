@@ -471,8 +471,7 @@ Copy：从主控端复制文件到远程主机
       dest: 指定目标路径
       mode: 设置权限
       backup: 备份源文件
-      content: 代替src  指定本机文件内容,生成目标主机文件
-      
+      content: 代替src  指定本机文件内容,生成目标主机文件   
       > ansible websrvs -m copy -a "src=/root/test1.sh dest=/tmp/test2.showner=wang mode=600 backup=yes"
         如果目标存在，默认覆盖，此处指定先备份
       > ansible websrvs -m copy -a "content='test content\nxxx' dest=/tmp/test.txt"
@@ -535,20 +534,23 @@ Hostname：管理主机名
 
 Cron：计划任务
     支持时间：minute,hour,day,month,weekday
-    > ansible websrvs -m cron -a "minute=*/5 job='/usr/sbin/ntpdate 172.16.0.1 &>/dev/null' name=Synctime" 
     创建任务
-    > ansible websrvs -m cron -a 'state=absent name=Synctime' 
+    > ansible websrvs -m cron -a "minute=*/5 job='/usr/sbin/ntpdate 172.16.0.1 &>/dev/null' name=Synctime" 
+    > ansible all -m cron -a 'minute=* job="/usr/bin/wall FBI warnning" name=FBIwarn'
     删除任务
+    > ansible websrvs -m cron -a 'state=absent name=Synctime'
+    注释任务,不再生效
     > ansible websrvs -m cron -a 'minute=*/10 job='/usr/sbin/ntpdate 172.30.0.100" name=synctime disabled=yes'
-    注释任务,不在生效
+    
 
 Yum：管理包
     ansible websrvs -m yum -a 'list=httpd'  查看程序列表
-    
-    ansible websrvs -m yum -a 'name=httpd state=present' 安装
-    ansible websrvs -m yum -a 'name=httpd state=absent'  删除
-    可以同时安装多个程序包
-    
+    ansible websrvs -m yum -a 'name=httpd state=present' 安装，state默认为present       
+    ansible websrvs -m yum -a 'name=httpd state=absent'  删除 卸载软件
+    ansible websrvs -m yum -a 'name=httpd,vsftpd,redis state=present' 可以同时安装多个程序包
+    ansible websrvs -m yum -a 'name=httpd,vsftpd,redis state=absent' 可以同时卸载多个程序包
+    ansible websrvs -m yum -a 'name=/root/redis-xxx.rpm '  安装本地的rpm包
+     
 Service：管理服务
     ansible srv -m service -a 'name=httpd state=stopped'  停止服务
     ansible srv -m service -a 'name=httpd state=started enabled=yes' 启动服务,并设为开机自启
@@ -565,25 +567,29 @@ User：管理用户
     ansible websrvs -m user -a 'name=user1 comment="test user" uid=2048 home=/app/user1 group=root'
     ansible websrvs -m user -a 'name=sysuser1 system=yes home=/app/sysuser1'
     ansible websrvs -m user -a 'name=user1 state=absent remove=yes'  清空用户所有数据
-    ansible websrvs -m user -a 'name=app uid=88 system=yes home=/app groups=root shell=/sbin/nologin password="$1$zfVojmPy$ZILcvxnXljvTI2PhP2Iqv1"'  创建用户
+    ansible all -m user -a 'name=nginx uid=80 system=yes home=/var/nginx groups=root shell=/sbin/nologin password="$1$zfVojmPy$ZILcvxnXljvTI2PhP2Iqv1" comment="nginx service"'  创建用户
     ansible websrvs -m user -a 'name=app state=absent'  不会删除家目录
+    ansible websrvs -m user -a 'name=app state=absent remove=yes'  删除家目录
     
     安装mkpasswd 
     yum insatll expect 
     mkpasswd 生成口令
     openssl passwd -1  生成加密口令
-    
 
-删除用户及家目录等数据
-    Group：管理组
-        ansible srv -m group -a "name=testgroup system=yes"   创建组
-        ansible srv -m group -a "name=testgroup state=absent" 删除组
+Group：管理组
+    ansible srv -m group -a "name=testgroup system=yes"   创建组
+    ansible srv -m group -a "name=testgroup state=absent" 删除组
+
+iptables: 管理防火墙规则
+	ansible.builtin.iptables
+	参考：https://runebook.dev/zh/docs/ansible/collections/ansible/builtin/iptables_module
+
 ```
 
 ### ansible系列命令
 ```
-可以通过网上写好的
 ansible-galaxy
+    下载网上分享的playbook集合
     > 连接 https://galaxy.ansible.com 
       下载相应的roles(角色)
     
