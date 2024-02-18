@@ -471,7 +471,8 @@ Copy：从主控端复制文件到远程主机
       dest: 指定目标路径
       mode: 设置权限
       backup: 备份源文件
-      content: 代替src  指定本机文件内容,生成目标主机文件   
+      content: 代替src  指定本机文件内容,生成目标主机文件
+      
       > ansible websrvs -m copy -a "src=/root/test1.sh dest=/tmp/test2.showner=wang mode=600 backup=yes"
         如果目标存在，默认覆盖，此处指定先备份
       > ansible websrvs -m copy -a "content='test content\nxxx' dest=/tmp/test.txt"
@@ -534,23 +535,20 @@ Hostname：管理主机名
 
 Cron：计划任务
     支持时间：minute,hour,day,month,weekday
-    创建任务
     > ansible websrvs -m cron -a "minute=*/5 job='/usr/sbin/ntpdate 172.16.0.1 &>/dev/null' name=Synctime" 
-    > ansible all -m cron -a 'minute=* job="/usr/bin/wall FBI warnning" name=FBIwarn'
+    创建任务
+    > ansible websrvs -m cron -a 'state=absent name=Synctime' 
     删除任务
-    > ansible websrvs -m cron -a 'state=absent name=Synctime'
-    注释任务,不再生效
     > ansible websrvs -m cron -a 'minute=*/10 job='/usr/sbin/ntpdate 172.30.0.100" name=synctime disabled=yes'
-    
+    注释任务,不在生效
 
 Yum：管理包
     ansible websrvs -m yum -a 'list=httpd'  查看程序列表
-    ansible websrvs -m yum -a 'name=httpd state=present' 安装，state默认为present       
-    ansible websrvs -m yum -a 'name=httpd state=absent'  删除 卸载软件
-    ansible websrvs -m yum -a 'name=httpd,vsftpd,redis state=present' 可以同时安装多个程序包
-    ansible websrvs -m yum -a 'name=httpd,vsftpd,redis state=absent' 可以同时卸载多个程序包
-    ansible websrvs -m yum -a 'name=/root/redis-xxx.rpm '  安装本地的rpm包
-     
+    
+    ansible websrvs -m yum -a 'name=httpd state=present' 安装
+    ansible websrvs -m yum -a 'name=httpd state=absent'  删除
+    可以同时安装多个程序包
+    
 Service：管理服务
     ansible srv -m service -a 'name=httpd state=stopped'  停止服务
     ansible srv -m service -a 'name=httpd state=started enabled=yes' 启动服务,并设为开机自启
@@ -567,29 +565,25 @@ User：管理用户
     ansible websrvs -m user -a 'name=user1 comment="test user" uid=2048 home=/app/user1 group=root'
     ansible websrvs -m user -a 'name=sysuser1 system=yes home=/app/sysuser1'
     ansible websrvs -m user -a 'name=user1 state=absent remove=yes'  清空用户所有数据
-    ansible all -m user -a 'name=nginx uid=80 system=yes home=/var/nginx groups=root shell=/sbin/nologin password="$1$zfVojmPy$ZILcvxnXljvTI2PhP2Iqv1" comment="nginx service"'  创建用户
+    ansible websrvs -m user -a 'name=app uid=88 system=yes home=/app groups=root shell=/sbin/nologin password="$1$zfVojmPy$ZILcvxnXljvTI2PhP2Iqv1"'  创建用户
     ansible websrvs -m user -a 'name=app state=absent'  不会删除家目录
-    ansible websrvs -m user -a 'name=app state=absent remove=yes'  删除家目录
     
     安装mkpasswd 
     yum insatll expect 
     mkpasswd 生成口令
     openssl passwd -1  生成加密口令
+    
 
-Group：管理组
-    ansible srv -m group -a "name=testgroup system=yes"   创建组
-    ansible srv -m group -a "name=testgroup state=absent" 删除组
-
-iptables: 管理防火墙规则
-	ansible.builtin.iptables
-	参考：https://runebook.dev/zh/docs/ansible/collections/ansible/builtin/iptables_module
-
+删除用户及家目录等数据
+    Group：管理组
+        ansible srv -m group -a "name=testgroup system=yes"   创建组
+        ansible srv -m group -a "name=testgroup state=absent" 删除组
 ```
 
 ### ansible系列命令
 ```
+可以通过网上写好的
 ansible-galaxy
-    下载网上分享的playbook集合
     > 连接 https://galaxy.ansible.com 
       下载相应的roles(角色)
     
@@ -625,7 +619,7 @@ ansible-vault  (了解)
         ansible-vault view hello.yml    查看
         ansible-vault edit hello.yml    编辑加密文件
         ansible-vault rekey hello.yml   修改口令
-        ansible-vault create new.yml    创建新文件
+        ansible-vault create new.yml    创建新文件（需要输入密码，相当于创建一个新的加密文件）
 
 
 Ansible-console：2.0+新增，可交互执行命令，支持tab  (了解)
@@ -643,6 +637,8 @@ Ansible-console：2.0+新增，可交互执行命令，支持tab  (了解)
         root@appsrvs (2)[f:5]$ list
         root@appsrvs (2)[f:5]$ yum name=httpd state=present
         root@appsrvs (2)[f:5]$ service name=httpd state=started
+        root@hadoop (3)[f:10]$ cd 192.168.10.102
+        root@192.168.10.102 (1)[f:10]$
 ```
 
 
@@ -655,7 +651,7 @@ Ansible-console：2.0+新增，可交互执行命令，支持tab  (了解)
 > Playbook采用YAML语言编写
 ```
 ### playbook图解
-![image](https://note.youdao.com/yws/res/100098/FD38F2B4BE0B49578DCC4CB58E218543)  
+![Ansible图解](./img/Ansible图解.png)
 ```
 用户通过ansible命令直接调用yml语言写好的playbook,playbook由多条play组成
 每条play都有一个任务(task)相对应的操作,然后调用模块modules，应用在主机清单上,通过ssh远程连接
@@ -685,11 +681,11 @@ YAML Ain't Markup Language，即YAML不是XML。
 
 ### YAML语法简介
 ```
-> 在单一档案中，可用连续三个连字号(——)区分多个档案。
+> 在单一档案（这里档案指playbook文件）中，可用连续三个连字号(——)区分多个档案。
   另外，还有选择性的连续三个点号( ... )用来表示档案结尾
-> 次行开始正常写Playbook的内容，一般建议写明该Playbook的功能
+> 次行开始正常写Playbook的内容，一般建议写明该Playbook的功能（加#开头注释）
 > 使用#号注释代码
-> 缩进必须是统一的，不能空格和tab混用
+> 缩进必须是统一的，不能空格和tab混用（即缩进可以是1个或多个空格，但是必须上下缩进的空格是一致的）
 > 缩进的级别也必须是一致的，同样的缩进代表同样的级别，程序判别配置的级别是通过缩进结合换行来实现的
 > YAML文件内容是区别大小写的，k/v的值均需大小写敏感
 > 多个k/v可同行写也可换行写，同行使用:分隔
@@ -701,7 +697,7 @@ YAML Ain't Markup Language，即YAML不是XML。
 
 ### YAML语法简介  
 ```
-List：列表，其所有元素均使用“-”打头
+List：列表，其所有元素均使用“-”打头，并且-后面有空格
       列表代表同一类型的元素
 示例：
 # A list of tasty fruits
@@ -747,7 +743,7 @@ YAML的语法和其他高阶语言类似，并且可以简单表达清单、散�
 ```
 
 ### 三种常见的数据交换格式
-![image](https://note.youdao.com/yws/res/100106/8B5EADE22C804A65A1D9027206BD15F4)
+![](./img/三种常见的标记型语言数据交换格式.png)
 
 
 ### Playbook核心元素
@@ -839,7 +835,30 @@ tasks:
     ignore_errors: True  忽略错误
 ```
 
+demo
+
+```
+---
+- hosts: hadoop
+  remote_user: root
+  
+  tasks:
+        - name: create new file
+          file: name=/data/newfile state=touch
+        - name: create new user
+          user: name=test2 system=yes shell=/sbin/nologin
+        - name: install package
+          yum: name=httpd
+        - name: copy index
+          copy: src=/var/www/html/index.html dest=/var/www/html/
+        - name: start service
+          service: name=httpd state=started
+```
+
+
+
 ### 运行playbook
+
 ```
 运行playbook的方式
     ansible-playbook <filename.yml> ... [options]
