@@ -1,0 +1,26 @@
+---
+# 修改节点机的iptables
+- name: modify iptables
+  hosts: hadoop
+  remote_user: root
+  tasks:
+    - name: accept port 7001 in tcp
+      ansible.builtin.iptables:
+        chain: INPUT
+        table: filter
+        protocol: tcp
+        destination_port: 7001
+        jump: ACCEPT
+        state: present
+        action: insert
+      become: yes
+    - name: forward port 80 to 7001 in tcp
+      ansible.builtin.iptables:
+        chain: PREROUTING
+        table: nat
+        protocol: tcp
+        destination_port: 80
+        jump: REDIRECT
+        state: present
+        to_ports: 7001
+      become: yes

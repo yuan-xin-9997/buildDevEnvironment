@@ -795,7 +795,7 @@ remote_user:
         sudo_user:wang      sudo为wang
     
 task列表和action
-    任务列表task:由多个动作,多个任务组合起来的,每个任务都调用的模块,一个模块一个模块执行
+    任务列表task: 由多个动作,多个任务组合起来的,每个任务都调用的模块,一个模块一个模块执行
     1> play的主体部分是task list，task list中的各任务按次序逐个在hosts中指定的所有主机上执行，
        即在所有主机上完成第一个任务后，再开始第二个任务
 
@@ -835,29 +835,7 @@ tasks:
     ignore_errors: True  忽略错误
 ```
 
-demo
-
-```
----
-- hosts: hadoop
-  remote_user: root
-  
-  tasks:
-        - name: create new file
-          file: name=/data/newfile state=touch
-        - name: create new user
-          user: name=test2 system=yes shell=/sbin/nologin
-        - name: install package
-          yum: name=httpd
-        - name: copy index
-          copy: src=/var/www/html/index.html dest=/var/www/html/
-        - name: start service
-          service: name=httpd state=started
-```
-
-
-
-### 运行playbook
+### 运行playbook的方式
 
 ```
 运行playbook的方式
@@ -870,16 +848,18 @@ demo
     --list-hosts     列出运行任务的主机
     --list-tags      列出tag  (列出标签)
     --list-tasks     列出task (列出任务)
-    --limit 主机列表 只针对主机列表中的主机执行
+    --limit 主机组    只针对主机组中的主机执行
     -v -vv -vvv      显示过程
 
 示例
-    ansible-playbook hello.yml --check 只检测
-    ansible-playbook hello.yml --list-hosts  显示运行任务的主机
-    ansible-playbook hello.yml --limit websrvs  限制主机
+    ansible-playbook hello.yml --check          检测yml语法
+    ansible-playbook hello.yml --syntax-check   只检测
+    ansible-playbook hello.yml --list-hosts     显示运行任务的主机
+    ansible-playbook hello.yml --limit websrvs  限制主机组（不可以跟单个主机）
+注意：Options选项可以在playbook的yml文件的前面，也可以在后面
 ```
 
-### Playbook VS ShellScripts
+### Playbook VS Shell Scripts
 安装httpd
 ```
 SHELL脚本
@@ -901,16 +881,17 @@ Playbook定义
   
   tasks:
     - name: "安装Apache"
-      yum: name=httpd       yum模块:安装httpd
+      yum: name=httpd      # yum模块:安装httpd
     - name: "复制配置文件"
-      copy: src=/tmp/httpd.conf dest=/etc/httpd/conf/  copy模块: 拷贝文件
+      copy: src=/tmp/httpd.conf dest=/etc/httpd/conf/   #  copy模块: 拷贝文件，同一个-name下不能有两个copy
     - name: "复制配置文件"
       copy: src=/tmp/vhosts.conf dest=/etc/httpd/conf.d/  
     - name: "启动Apache，并设置开机启动"
-      service: name=httpd state=started enabled=yes   service模块: 启动服务 
+      service: name=httpd state=started enabled=yes     #  service模块: 启动服务 
 ```
 
-### 示例:Playbook 创建用户
+#### 示例: Playbook 创建系统用户
+
 ```
 示例：sysuser.yml
 ---
@@ -924,7 +905,8 @@ Playbook定义
       group: name=httpd system=yes
 ```
 
-### Playbook示例  安装httpd服务
+#### Playbook示例  安装httpd服务 并启动+开启自启
+
 ```
 示例：httpd.yml
 - hosts: websrvs
@@ -934,13 +916,65 @@ Playbook定义
     - name: Install httpd
       yum: name=httpd state=present
     - name: Install configure file
-      copy: src=files/httpd.conf dest=/etc/httpd/conf/
+      copy: src=files/httpd.conf dest=/etc/httpd/conf/   # 注意此处是相对路径，相对于当前yml文件所在的路径
     - name: start service
       service: name=httpd state=started enabled=yes
 ```
 
-### Playbook示例  安装nginx服务
+#### Playbook示例 安装httpd服务 并启动
+
+```yaml
+---
+- hosts: hadoop
+  remote_user: root
+  
+  tasks:
+        - name: create new file
+          file: name=/data/newfile state=touch
+        - name: create new user
+          user: name=test2 system=yes shell=/sbin/nologin
+        - name: install package
+          yum: name=httpd
+        - name: copy index
+          copy: src=/var/www/html/index.html dest=/var/www/html/
+        - name: start service
+          service: name=httpd state=started
 ```
+
+#### Playbook示例 修改iptables
+
+```yaml
+---
+# 修改节点机的iptables
+- name: modify iptables
+  hosts: hadoop
+  remote_user: root
+  tasks:
+    - name: accept port 7001 in tcp
+      ansible.builtin.iptables:
+        chain: INPUT
+        table: filter
+        protocol: tcp
+        destination_port: 7001
+        jump: ACCEPT
+        state: present
+        action: insert
+      become: yes
+    - name: forward port 80 to 7001 in tcp
+      ansible.builtin.iptables:
+        chain: PREROUTING
+        table: nat
+        protocol: tcp
+        destination_port: 80
+        jump: REDIRECT
+        state: present
+        to_ports: 7001
+      become: yes
+```
+
+#### Playbook示例  安装nginx服务 并启动+自启
+
+```yaml
 示例 nginx.yml
 - hosts: all
   remote_user: root
@@ -956,9 +990,12 @@ Playbook定义
       service: name=nginx state=started enabled=yes
 ```
 
+这里会存在一个问题，如果配置文件修改，此playbook重新被执行之后，虽然配置文件拷贝过去了，但是nginx不会被重启，因为ansible的幂等性，如果判断节点机的Nginx已经被启动了，则不会执行启动命令。下面的handlers和notify将用来解决这个问题。
+
 ### handlers和notify结合使用触发条件
+
 ```
-Handlers 实际上就是一个触发器
+Handlers：实际上就是一个触发器
 是task列表，这些task与前述的task并没有本质上的不同,用于当关注的资源发生变化时，才会采取一定的操作
 
 Notify此action可用于在每个play的最后被触发，
@@ -967,7 +1004,10 @@ Notify此action可用于在每个play的最后被触发，
 ```
 
 ### Playbook中handlers使用
-```
+
+改进：配置文件一旦发生变化，将重启服务
+
+```yaml
 - hosts: websrvs
   remote_user: root
 
@@ -985,8 +1025,9 @@ Notify此action可用于在每个play的最后被触发，
       service: name=httpd state=restarted
 ```
 
-### 示例
-```
+#### 示例
+
+```yaml
 - hosts: webnodes
   vars:
     http_port: 80
@@ -1007,8 +1048,9 @@ Notify此action可用于在每个play的最后被触发，
         service: name=httpd state=restarted
 ```
 
-### 示例
-```
+#### 示例
+
+```yaml
 - hosts: websrvs
   remote_user: root
   
@@ -1022,7 +1064,7 @@ Notify此action可用于在每个play的最后被触发，
       yum: name=nginx state=present
     - name: config
       copy: src=/root/config.txt dest=/etc/nginx/nginx.conf
-      notify:
+      notify:  # 可以触发多个handlers
         - Restart Nginx
         - Check Nginx Process
   
@@ -1034,12 +1076,14 @@ Notify此action可用于在每个play的最后被触发，
 ```
 
 ### Playbook中tags使用 
-```
+
 tage: 添加标签 
 可以指定某一个任务添加一个标签,添加标签以后,想执行某个动作可以做出挑选来执行
 多个动作可以使用同一个标签
 
 示例：httpd.yml
+
+```yaml
 - hosts: websrvs
   remote_user: root
   
@@ -1053,11 +1097,54 @@ tage: 添加标签
     - name: start httpd service
       tags: service
       service: name=httpd state=started enabled=yes
-
-ansible-playbook –t install,conf httpd.yml   指定执行install,conf 两个标签
 ```
 
-### 示例
+```shell
+ansible-playbook –t install,conf httpd.yml   # 指定执行install,conf 两个标签
+```
+
+注意：（1）tag中不能有空格
+
+```shell
+[root@hadoop102 ansible]# cat httpd_tags.yml 
+---
+- name: install httpd
+  hosts: hadoop
+  remote_user: root
+  tasks:
+    - name: install httpd package
+      yum: name=httpd state=present
+      tags: install
+    - name: copy conf file
+      copy: src=files/httpd.conf dest=/etc/httpd/conf/ backup=yes
+      notify: restart httpd
+      tags: conf
+    - name: start service
+      service: name=httpd state=started enabled=no
+      tags: start service
+  
+  handlers:
+    - name: restart httpd
+      service: name=httpd state=restarted[root@hadoop102 ansible]# ansible-playbook -t start service httpd_tags.yml 
+ERROR! the playbook: service could not be found
+[root@hadoop102 ansible]# 
+```
+
+（2）多个动作可以共用一个标签，如果指定了多个task均会被执行
+
+（3）查看playbook中的tags
+
+```shell
+[root@hadoop102 ansible]# ansible-playbook --list-tags httpd_tags.yml 
+
+playbook: httpd_tags.yml
+
+  play #1 (hadoop): install httpd	TAGS: []
+      TASK TAGS: [conf, install, start]
+```
+
+#### 示例
+
 ```
 //heartbeat.yaml
 - hosts: hbhosts
@@ -1081,7 +1168,8 @@ ansible-playbook –t install,conf httpd.yml   指定执行install,conf 两个�
       service: name=heartbeat state=restarted
 ```
 
-### Playbook中tags使用
+#### Playbook中tags使用
+
 ```
 - hosts: testsrv
   remote_user: root
@@ -1101,23 +1189,81 @@ ansible-playbook –t rshttpd httpd2.yml
 ```
 
 ### Playbook中变量的使用
+
+setup 模块记录保存系统中很多系统信息（记录了系统自带的变量），可以返回每个主机的系统信息包括:版本、主机名、cpu、内存。
+
+查看setup保存的所有变量
+```shell
+ansible all -m setup|less
+```
+
+结果如下
+
+```
+192.168.10.104 | SUCCESS => {
+    "ansible_facts": {
+        "ansible_all_ipv4_addresses": [
+            "192.168.10.104"
+        ], 
+        "ansible_all_ipv6_addresses": [], 
+        "ansible_apparmor": {
+            "status": "disabled"
+        }, 
+        "ansible_architecture": "x86_64", 
+        "ansible_bios_date": "11/12/2020", 
+        "ansible_bios_version": "6.00", 
+        "ansible_cmdline": {
+            "BOOT_IMAGE": "/vmlinuz-3.10.0-1160.el7.x86_64", 
+            "LANG": "zh_CN.UTF-8", 
+            "quiet": true, 
+            "rd.lvm.lv": "centos/swap", 
+            "rhgb": true, 
+            "ro": true, 
+            "root": "/dev/mapper/centos-root"
+        }, 
+        "ansible_date_time": {
+            "date": "2024-02-19", 
+            "day": "19", 
+            "epoch": "1708303288", 
+            "hour": "08", 
+            "iso8601": "2024-02-19T00:41:28Z", 
+            "iso8601_basic": "20240219T084128468958", 
+            "iso8601_basic_short": "20240219T084128", 
+            "iso8601_micro": "2024-02-19T00:41:28.468958Z", 
+            "minute": "41", 
+            "month": "02", 
+            "second": "28", 
+            "time": "08:41:28", 
+            "tz": "CST", 
+            "tz_offset": "+0800", 
+            "weekday": "星期一", 
+            "weekday_number": "1", 
+            "weeknumber": "08", 
+            "year": "2024"
+        }, 
+        ...
+```
+
+#### ansible 变量介绍
+
+
 ```
 变量名：仅能由字母、数字和下划线组成，且只能以字母开头
 变量来源：
     1> ansible setup facts 远程主机的所有变量都可直接调用 (系统自带变量)
-       setup模块可以实现系统中很多系统信息的显示
-                可以返回每个主机的系统信息包括:版本、主机名、cpu、内存
+       setup 模块记录系统中很多系统信息的显示,可以返回每个主机的系统信息包括:版本、主机名、cpu、内存
        ansible all -m setup -a 'filter="ansible_nodename"'     查询主机名
        ansible all -m setup -a 'filter="ansible_memtotal_mb"'  查询主机内存大小
        ansible all -m setup -a 'filter="ansible_distribution_major_version"'  查询系统版本
        ansible all -m setup -a 'filter="ansible_processor_vcpus"' 查询主机cpu个数
+       ansible all -m setup -a 'filter="*address*"'  使用通配符
     
     2> 在/etc/ansible/hosts(主机清单)中定义变量
-        普通变量：主机组中主机单独定义，优先级高于公共变量(单个主机 )
+        普通变量：主机组中主机单独定义，优先级高于公共变量(单个主机)
         公共(组)变量：针对主机组中所有主机定义统一变量(一组主机的同一类别)
     
-    3> 通过命令行指定变量，优先级最高
-       ansible-playbook –e varname=value
+    3> 通过命令行指定变量，优先级最高（-e选项）
+       ansible-playbook –e 'varname=value varname2=value2'
     
     4> 在playbook中定义
        vars:
@@ -1140,25 +1286,45 @@ ansible-playbook –t rshttpd httpd2.yml
     2> ansible-playbook –e 选项指定
        ansible-playbook test.yml -e "hosts=www user=magedu"
 ```
-```
-在主机清单中定义变量,在ansible中使用变量
+
+
+
+#### ansible变量的定义
+
+在主机清单/etc/ansible/hosts中定义变量，定义普通变量
+
+```shell
 vim /etc/ansible/hosts
 [appsrvs]
-192.168.38.17 http_port=817 name=www
-192.168.38.27 http_port=827 name=web
+192.168.38.17 http_port=817 name=www   # 普通变量
+192.168.38.27 http_port=827 name=web   # 普通变量
+```
+调用普通变量
 
-调用变量
+```shell
 ansible appsrvs -m hostname -a'name={{name}}'  更改主机名为各自被定义的变量 
+```
 
-针对一组设置变量
+
+
+在主机清单/etc/ansible/hosts中定义变量，定义公共变量变量
+
+```
+针对appsrvs组设置变量
 [appsrvs:vars]
 make="-"
-
-ansible appsrvs -m hostname -a 'name={{name}}{{mark}}{{http_port}}'  ansible调用变量
-
 ```
+ansible调用变量（同时调用公共变量+普通变量）
+
+```shell
+ansible appsrvs -m hostname -a 'name={{name}}{{mark}}{{http_port}}'  
 ```
+
+
+
 将变量写进单独的配置文件中引用
+
+```
 vim vars.yml
 pack: vsftpd
 service: vsftpd
@@ -1169,7 +1335,81 @@ vars_files:
     
 ```
 
+
+
+
+
+在playbook中引用变量
+
+```yaml
+---
+- hosts: hadoop
+  remote_user: root
+  
+  tasks:
+    - name: install package
+      yum: name={{ pkname }}
+    - name: start service
+      service: name={{ pkname }} state=started enabled=no
+```
+
+使用playbook -e选项对变量进行赋值（在命令行定义变量）
+
+```shell
+ansible-playbook -e 'pkname=vsftpd' install_pkname_variables.yml 
+
+对多个变量赋值
+ansible-playbook -e 'pkname1=vsftpd pkname2=vsftpd' install_pkname_variables.yml 
+```
+
+
+
+在playbook中定义变量
+
+```yaml
+---
+- hosts: hadoop
+  remote_user: root
+  vars:
+    - pkname: vsftp
+  
+  tasks:
+    - name: install package
+      yum: name={{ pkname }}
+    - name: start service
+      service: name={{ pkname }} state=started enabled=no
+```
+
+执行playbook，不需要-e选项
+
+```shell
+ansible-playbook install_pkname_variables1.yml
+```
+
+
+
+#### 使用setup中定义的变量
+
+示例：var.yml
+
+```yaml
+- hosts: websrvs
+  remote_user: root
+  tasks:
+    - name: create log file
+      file: name=/var/log/{{ ansible_fqdn }} state=touch
+```
+
+```shell
+ansible-playbook var.yml
+```
+
+
+
+
+
 ### Ansible基础元素
+
 ```
 Facts：是由正在通信的远程目标主机发回的信息，这些信息被保存在ansible变量中。
        要获取指定的远程主机所支持的所有facts，可使用如下命令进行
@@ -1190,17 +1430,7 @@ tasks:
   ignore_errors: True
 ```
 
-### 示例：使用setup变量
-```
-示例：var.yml
-- hosts: websrvs
-  remote_user: root
-  tasks:
-    - name: create log file
-      file: name=/var/log/ {{ ansible_fqdn }} state=touch
 
-ansible-playbook var.yml
-```
 
 ### 示例：变量
 ```

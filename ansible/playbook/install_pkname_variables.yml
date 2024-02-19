@@ -1,0 +1,9 @@
+---
+- hosts: hadoop
+  remote_user: root
+  
+  tasks:
+    - name: install package
+      yum: name={{ pkname }}
+    - name: start service
+      service: name={{ pkname }} state=started enabled=no

@@ -1,0 +1,16 @@
+---
+- name: install httpd
+  hosts: hadoop
+  remote_user: root
+  tasks:
+    - name: install httpd package
+      yum: name=httpd state=present
+    - name: copy conf file
+      copy: src=files/httpd.conf dest=/etc/httpd/conf/ backup=yes
+      notify: restart httpd
+    - name: start service
+      service: name=httpd state=started enabled=no
+  
+  handlers:
+    - name: restart httpd
+      service: name=httpd state=restarted

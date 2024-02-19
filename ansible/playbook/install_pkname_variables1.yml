@@ -1,0 +1,11 @@
+---
+- hosts: hadoop
+  remote_user: root
+  vars:
+    - pkname: vsftpd
+  
+  tasks:
+    - name: install package
+      yum: name={{ pkname }}
+    - name: start service
+      service: name={{ pkname }} state=started enabled=no
