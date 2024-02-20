@@ -1287,11 +1287,15 @@ ansible all -m setup|less
        ansible-playbook test.yml -e "hosts=www user=magedu"
 ```
 
+### ansible变量的定义与使用
 
+#### 变量作用优先级
 
-#### ansible变量的定义
+如果在多处地方定义的变量名相同，则变量的优先级为：
 
-在主机清单/etc/ansible/hosts中定义变量，定义普通变量
+命令行-e > playbook中定义的变量 > 主机清单中定义的普通变量 > 主机清单中定义的公共变量
+
+#### 在主机清单/etc/ansible/hosts中定义变量，定义普通变量
 
 ```shell
 vim /etc/ansible/hosts
@@ -1307,7 +1311,7 @@ ansible appsrvs -m hostname -a'name={{name}}'  更改主机名为各自被定义
 
 
 
-在主机清单/etc/ansible/hosts中定义变量，定义公共变量变量
+#### 在主机清单/etc/ansible/hosts中定义变量，定义公共变量变量
 
 ```
 针对appsrvs组设置变量
@@ -1322,22 +1326,30 @@ ansible appsrvs -m hostname -a 'name={{name}}{{mark}}{{http_port}}'
 
 
 
-将变量写进单独的配置文件中引用
+```shell
+普通变量
+    [websrvs]
+    192.168.99.101 http_port=8080 hname=www1
+    192.168.99.102 http_port=80 hname=www2
 
+公共（组）变量
+    [websvrs:vars]
+    http_port=808
+    mark="_"
+    [websrvs]
+    192.168.99.101 http_port=8080 hname=www1
+    192.168.99.102 http_port=80 hname=www2
+    ansible websvrs –m hostname –a ‘name={{ hname }}{{ mark }}{{ http_port }}’
+
+命令行指定变量：
+    ansible websvrs –e http_port=8000 –m hostname –a'name={{ hname }}{{ mark }}{{ http_port }}'
 ```
-vim vars.yml
-pack: vsftpd
-service: vsftpd
-
-引用变量文件
-vars_files:
-  - vars.yml 
-    
-```
 
 
 
 
+
+#### 在ansible命令行中-e定义变量
 
 在playbook中引用变量
 
@@ -1362,9 +1374,22 @@ ansible-playbook -e 'pkname=vsftpd' install_pkname_variables.yml
 ansible-playbook -e 'pkname1=vsftpd pkname2=vsftpd' install_pkname_variables.yml 
 ```
 
+```shell
+示例：var.yml
+- hosts: websrvs
+  remote_user: root
+  tasks:
+    - name: install package
+      yum: name={{ pkname }} state=present
+      
+ansible-playbook –e pkname=httpd var.yml
+```
 
 
-在playbook中定义变量
+
+
+
+#### 在playbook中定义变量
 
 ```yaml
 ---
@@ -1385,6 +1410,40 @@ ansible-playbook -e 'pkname1=vsftpd pkname2=vsftpd' install_pkname_variables.yml
 ```shell
 ansible-playbook install_pkname_variables1.yml
 ```
+
+
+
+
+
+#### 将变量定义在单独的变量配置文件中
+
+vim vars.yml
+
+```yaml
+var1: httpd
+var2: nginx
+```
+
+在playbook中引用变量文件
+
+cat var.yml
+
+```yaml
+- hosts: web
+  remote_user: root
+  vars_files:   # 引用变量配置文件
+    - vars.yml
+  tasks:
+    - name: create httpd log
+      file: name=/app/{{ var1 }}.log state=touch
+    - name: create nginx log
+      file: name=/app/{{ var2 }}.log state=touch
+      
+hostname app_81.magedu.com  hostname 不支持"_",认为"_"是非法字符
+hostnamectl set-hostname app_80.magedu.com  可以更改主机名
+```
+
+
 
 
 
@@ -1432,102 +1491,9 @@ tasks:
 
 
 
-### 示例：变量
-```
-示例：var.yml
-- hosts: websrvs
-  remote_user: root
-  tasks:
-    - name: install package
-      yum: name={{ pkname }} state=present
-      
-ansible-playbook –e pkname=httpd var.yml
-```
 
-### 示例：变量
-```
-示例：var.yml
-- hosts: websrvs
-  remote_user: root
-vars:
-  - username: user1
-  - groupname: group1
-tasks:
-  - name: create group
-    group: name={{ groupname }} state=present
-  - name: create user
-    user: name={{ username }} state=present
 
-ansible-playbook var.yml
-ansible-playbook -e "username=user2 groupname=group2” var2.yml
-
-```
-
-### 变量
-```
-主机变量
-可以在inventory中定义主机时为其添加主机变量以便于在playbook中使用
-
-示例：
-[websrvs]
-www1.magedu.com http_port=80 maxRequestsPerChild=808
-www2.magedu.com http_port=8080 maxRequestsPerChild=909
-
-组变量
-组变量是指赋予给指定组内所有主机上的在playbook中可用的变量
-
-示例：
-    [websrvs]
-    www1.magedu.com
-    www2.magedu.com
-
-    [websrvs:vars]
-    ntp_server=ntp.magedu.com
-    nfs_server=nfs.magedu.com
-```
-
-### 示例：变量
-```
-普通变量
-    [websrvs]
-    192.168.99.101 http_port=8080 hname=www1
-    192.168.99.102 http_port=80 hname=www2
-
-公共（组）变量
-    [websvrs:vars]
-    http_port=808
-    mark="_"
-    [websrvs]
-    192.168.99.101 http_port=8080 hname=www1
-    192.168.99.102 http_port=80 hname=www2
-    ansible websvrs –m hostname –a ‘name={{ hname }}{{ mark }}{{ http_port }}’
-
-命令行指定变量：
-    ansible websvrs –e http_port=8000 –m hostname –a'name={{ hname }}{{ mark }}{{ http_port }}'
-```
-
-### 使用变量文件
-```
-cat vars.yml
-var1: httpd
-var2: nginx
-
-cat var.yml
-- hosts: web
-  remote_user: root
-  vars_files:
-    - vars.yml
-  tasks:
-    - name: create httpd log
-      file: name=/app/{{ var1 }}.log state=touch
-    - name: create nginx log
-      file: name=/app/{{ var2 }}.log state=touch
-      
-hostname app_81.magedu.com  hostname 不支持"_",认为"_"是非法字符
-hostnamectl set-hostname app_80.magedu.com  可以更改主机名
-```
-
-### 变量
+### 组嵌套 变量
 ```
 组嵌套
 inventory中，组还可以包含其它的组，并且也可以向组中的主机指定变量。
@@ -1616,7 +1582,7 @@ Works for anything such as ruby or perl and works just like ansible_python_inter
 This replaces shebang of modules which will run on that host.
 ```
 
-### 模板templates
+### 模板 templates
 ```
 文本文件，嵌套有脚本（使用模板编程语言编写） 借助模板生成真正的文件
 Jinja2语言，使用字面量，有下面形式
@@ -1632,7 +1598,10 @@ Jinja2语言，使用字面量，有下面形式
 流表达式：For，If，When
 ```
 
-### Jinja2相关
+### Jinja2
+
+#### Jinja2相关
+
 ```
 字面量
     1> 表达式最简单的形式就是字面量。字面量表示诸如字符串和数值的 Python对象。如“Hello World”
@@ -1641,7 +1610,8 @@ Jinja2语言，使用字面量，有下面形式
     3> 数值可以为整数和浮点数。如果有小数点，则为浮点数，否则为整数。在Python 里， 42 和 42.0 是不一样的
 ```
 
-### Jinja2:算术运算
+#### Jinja2:算术运算
+
 ```
 算术运算
 Jinja 允许你用计算值。这在模板中很少用到，但为了完整性允许其存在
@@ -1658,7 +1628,8 @@ Jinja 允许你用计算值。这在模板中很少用到，但为了完整性�
     **：取左操作数的右操作数次幂。 {{ 2**3 }} 会返回 8
 ```
 
-### Jinja2
+#### Jinja2
+
 ```
 比较操作符
 == 比较两个对象是否相等
@@ -1702,7 +1673,60 @@ Python 中的字典是一种关联键和值的结构。
     true 永远是 true ，而 false 始终是 false
 ```
 
-### template 的使用
+### template模块 的使用
+
+```shell
+[root@hadoop102 ansible]# ansible-doc template
+> TEMPLATE    (/usr/lib/python2.7/site-packages/ansible/modules/files/template.py)
+
+        Templates are processed by the L(Jinja2 templating language,http://jinja.pocoo.org/docs/).
+        Documentation on the template formatting can be found in the L(Template Designer
+        Documentation,http://jinja.pocoo.org/docs/templates/). Additional variables listed below can
+        be used in templates. `ansible_managed' (configurable via the `defaults' section of
+        `ansible.cfg') contains a string which can be used to describe the template name, host,
+        modification time of the template file and the owner uid. `template_host' contains the node
+        name of the template's machine. `template_uid' is the numeric user id of the owner.
+        `template_path' is the path of the template. `template_fullpath' is the absolute path of the
+        template. `template_destpath' is the path of the template on the remote system (added in
+        2.8). `template_run_date' is the date that the template was rendered.
+
+  * This module is maintained by The Ansible Core Team
+  * note: This module has a corresponding action plugin.
+
+OPTIONS (= is mandatory):
+
+- attributes
+        The attributes the resulting file or directory should have.
+        To get supported flags look at the man page for `chattr' on the target system.
+        This string should contain the attributes in the same order as the one displayed by `lsattr'.
+        The `=' operator is assumed as default, otherwise `+' or `-' operators need to be included in
+        the string.
+        (Aliases: attr)[Default: (null)]
+        type: str
+        version_added: 2.3
+
+- backup
+        Create a backup file including the timestamp information so you can get the original file
+        back if you somehow clobbered it incorrectly.
+        [Default: False]
+        type: bool
+
+- block_end_string
+        The string marking the end of a block.
+        [Default: %}]
+        type: str
+        version_added: 2.4
+
+- block_start_string
+        The string marking the beginning of a block.
+        [Default: {%]
+        type: str
+        version_added: 2.4
+
+```
+
+注：template只能用于playbook，ansible命令不可以使用
+
 ```
 template功能：根据模块文件动态生成对应的配置文件
    > template文件必须存放于templates目录下，且命名为 .j2 结尾
@@ -1713,37 +1737,56 @@ template功能：根据模块文件动态生成对应的配置文件
         └── nginx.conf.j2
 ```
 
-### template示例
-```
+#### template示例 利用template 拷贝nginx配置文件
+
 示例：利用template 同步nginx配置文件
 准备templates/nginx.conf.j2文件
+
 vim temnginx.yml
+
+```yaml
 - hosts: websrvs
   remote_user: root
   
   tasks:
     - name: template config to remote hosts
       template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
+```
 
 ansible-playbook temnginx.yml
-```
 
-### Playbook中template变更替换
-```
-修改文件nginx.conf.j2 下面行为
+#### template示例 利用Playbook中template变更替换
+
+修改文件nginx.conf.j2 下面行为（在模板文件中，使用setup模块中的变量）
+
+```shell
 worker_processes {{ ansible_processor_vcpus }};
+```
 
 cat temnginx2.yml
-- hosts: websrvs
-  remote_user: root
-  tasks:
-    - name: template config to remote hosts
-      template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
 
-ansible-playbook temnginx2.yml
+```yaml
+---
+- hosts: hadoop
+  remote_user: root
+  
+  tasks:
+        - name: install package
+          yum: name=nginx state=present
+        - name: copy tempalte
+          template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
+          notify: restart nginx
+        - name: start service
+          service: name=nginx state=started enabled=no
+  handlers:
+        - name: restart nginx
+          service: name=nginx state=restarted enabled=no
 ```
 
-### Playbook中template算术运算
+ansible-playbook temnginx2.yml
+
+#### Playbook中template算术运算
+
 ```
 算法运算：
 示例：
@@ -1752,11 +1795,11 @@ ansible-playbook temnginx2.yml
     worker_processes {{ ansible_processor_vcpus+2 }};
 ```
 
-### when  实现条件判断
+### 条件判断：when  实现条件判断
 ```
 条件测试:如果需要根据变量、facts或此前任务的执行结果来做为某task执行与否的前提时要用到条件测试,
 通过when语句实现，在task中使用，jinja2的语法格式
-
+ 
 when语句
     在task后添加when子句即可使用条件测试；when语句支持Jinja2表达式语法
 示例：
@@ -1781,8 +1824,9 @@ tasks:
 
 此外，when语句中还可以使用facts或playbook中定义的变量
 ```
-### 示例：when条件判断
-```
+#### 示例：when条件判断
+
+```yaml
 - hosts: websrvs
   remote_user: root
   tasks:
@@ -1798,29 +1842,31 @@ tasks:
       when: ansible_distribution_major_version == "6"
 ```
 
-### 示例：when条件判断
-```
-示例：
-tasks:
-  - name: install conf file to centos7
-    template: src=nginx.conf.c7.j2 dest=/etc/nginx/nginx.conf
-    when: ansible_distribution_major_version == "7"
-  - name: install conf file to centos6
-    template: src=nginx.conf.c6.j2 dest=/etc/nginx/nginx.conf
-    when: ansible_distribution_major_version == "6"
+#### 示例：when条件判断
+
+```yaml
+---
+- hosts: hadoop
+  remote_user: root
+  
+  tasks:
+        - name: install package
+          yum: name=nginx state=present
+        - name: copy tempalte for centos 7
+          template: src=nginx.conf7.j2 dest=/etc/nginx/nginx.conf
+          when: ansible_distribution_major_version=="7"  # 注意是==
+          notify: restart nginx
+        - name: copy tempalte for centos 6
+          template: src=nginx.conf6.j2 dest=/etc/nginx/nginx.conf
+          when: ansible_distribution_major_version=="6"
+          notify: restart nginx
+        - name: start service
+          service: name=nginx state=started enabled=no
+  handlers:
+        - name: restart nginx
+          service: name=nginx state=restarted enabled=no
 ```
 
-### Playbook中when条件判断
-```
----
-- hosts: srv120
-  remote_user: root
-  tasks:
-    - name:
-      template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
-      when: ansible_distribution_major_version == "7"
-```
-![image](https://note.youdao.com/yws/res/100097/A6150393F3CF41DEAFD7A7002C2F952E)
 ### 迭代：with_items
 ```
 迭代：当有需要重复性执行的任务时，可以使用迭代机制
@@ -1831,7 +1877,8 @@ tasks:
          字典
 ```
 
-### 示例
+#### 示例
+
 ```
 示例： 创建用户
 - name: add several users
@@ -1858,9 +1905,9 @@ ansible的循环机制还有更多的高级功能，具体请参见官方文档
 http://docs.ansible.com/playbooks_loops.html
 ```
 
-### 示例：迭代
-```
-示例：将多个文件进行copy到被控端
+#### 示例：迭代 将多个文件进行copy到被控端
+
+```yaml
 ---
 - hosts: testsrv
   remote_user: root
@@ -1868,31 +1915,56 @@ http://docs.ansible.com/playbooks_loops.html
   - name: Create rsyncd config
     copy: src={{ item }} dest=/etc/{{ item }}
     with_items:
-  - rsyncd.secrets
-  - rsyncd.conf
+      - rsyncd.secrets
+      - rsyncd.conf
 ```
 
-### 示例：迭代
+#### 示例：创建文件，安装包
+```yaml
+---
+- name: item demo
+  hosts: hadoop
+  remote_user: root
+  
+  tasks:
+    - name: create some file
+      file: name=/data/{{item}} state=touch
+      when: ansible_distribution_major_version=="7"
+      with_items:
+        - file1
+        - file2
+        - file3
+    - name: install some package
+      yum: name={{item}} state=present
+      with_items:
+        - htop
+        - sl
+        - hping3
 ```
+
+#### 示例：迭代
+
+```yaml
 - hosts: websrvs
   remote_user: root
   tasks:
     - name: copy file
       copy: src={{ item }} dest=/tmp/{{ item }}
       with_items:
-    - file1
-    - file2
-    - file3
-- name: yum install httpd
-  yum: name={{ item }} state=present
-  with_items:
-    - apr
-    - apr-util
-    - httpd
+        - file1
+        - file2
+        - file3
+    - name: yum install some package
+      yum: name={{ item }} state=present
+      with_items:
+        - apr
+        - apr-util
+        - httpd
 ```
 
-### 示例：迭代
-```
+#### 示例：迭代
+
+```yaml
 - hosts：websrvs
   remote_user: root
   tasks
@@ -1904,7 +1976,8 @@ http://docs.ansible.com/playbooks_loops.html
         - php-fpm
 ```
 
-### 示例：迭代嵌套子变量
+#### 示例：迭代嵌套子变量
+
 ```
 - hosts：websrvs
   remote_user: root
@@ -1924,23 +1997,26 @@ http://docs.ansible.com/playbooks_loops.html
         - { name: 'user3', group: 'group3' }
 ```
 
-### with_itmes 嵌套子变量
-```
+#### with_itmes 嵌套子变量
+
 with_itmes 嵌套子变量
-示例
----
+
+示例：创建多个用户，并归属于多个组
+
+```yaml
 - hosts: testweb
   remote_user: root
   tasks:
     - name: add several users
       user: name={{ item.name }} state=present groups={{ item.groups }}
       with_items:
-    - { name: 'testuser1' , groups: 'wheel'}
-    - { name: 'testuser2' , groups: 'root'}
+        - { name: 'testuser1' , groups: 'wheel'}  
+        - { name: 'testuser2' , groups: 'root'}
 ```
 
-### Playbook字典 with_items
-```
+#### Playbook字典 with_items
+
+```yaml
 - name: 使用ufw模块来管理哪些端口需要开启
   ufw:
   rule: “{{ item.rule }}”
@@ -1961,7 +2037,7 @@ with_itmes 嵌套子变量
     - { direction: incoming, policy: deny }
 ```
 
-### Playbook中template for if  when循环
+### 循环：Playbook中template for if  when 循环
 ```
 {% for vhost in nginx_vhosts %}
 
@@ -1979,71 +2055,288 @@ root {{ vhost.root }};
 {% endfor %}
 ```
 
-### 示例
+#### 示例：列表形式 for 循环
+
+for1.conf.j2
+
 ```
-// temnginx.yml
+{% for port in ports %}
+server{
+	listen {{port}}
+}
+{% endfor %}
+```
+
+for.yml 
+
+```yaml
+---
+- hosts: hadoop
+  remote_user: root
+  vars:
+    ports:  # 列表形式
+      - 81
+      - 82
+      - 83
+  tasks:
+    - name: copy conf
+      template: src=for1.conf.j2 dest=/data/for1.conf
+```
+
+执行
+
+```shell
+[root@hadoop102 ansible]# ansible-playbook for.yml 
+
+PLAY [hadoop] *****************************************************************************************************************
+
+TASK [Gathering Facts] ********************************************************************************************************
+ok: [192.168.10.104]
+ok: [192.168.10.103]
+
+TASK [copy conf] **************************************************************************************************************
+changed: [192.168.10.103]
+changed: [192.168.10.104]
+
+PLAY RECAP ********************************************************************************************************************
+192.168.10.103             : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+192.168.10.104             : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+```
+
+生成结果
+
+```shell
+[root@hadoop103 data]# cat for1.conf 
+server{
+	listen 81
+}
+server{
+	listen 82
+}
+server{
+	listen 83
+}
+[root@hadoop103 data]# 
+```
+
+
+
+#### 示例：键值对 字典形式 for 循环
+
+temnginx.yml
+
+```yaml
 ---
 - hosts: testweb
   remote_user: root
   vars:      # 调用变量
     nginx_vhosts:
-      - listen: 8080  #列表 键值对
+      - listen: 8080  #键值对
+```
+templates/nginx.conf.j2
 
-
-//templates/nginx.conf.j2
+```
 {% for vhost in nginx_vhosts %}  
 server {
   listen {{ vhost.listen }}
 }
 {% endfor %}
+```
 
 生成的结果
+
+```shell
 server {
   listen 8080
 }
 ```
 
-### 示例
-```
-// temnginx.yml
+#### 示例：嵌套子变量 for 循环
+
+for2.yml
+
+```yaml
 ---
-- hosts: mageduweb
+- hosts: hadoop
   remote_user: root
   vars:
-    nginx_vhosts:
-      - web1
-      - web2
-      - web3
+    ports:
+      - web1:
+        port: 81
+        name: web1.com
+        rootdir: /data/web1
+      - web2:
+        port: 82
+        name: web2.com
+        rootdir: /data/web2
+      - web3:
+        port: 83
+        name: web3.com
+        rootdir: /data/web3
   tasks:
-    - name: template config
-      template: src=nginx.conf.j2 dest=/etc/nginx/nginx.conf
-
-// templates/nginx.conf.j2
-{% for vhost in nginx_vhosts %}
-server {
-    listen {{ vhost }}
-}
-{% endfor %}
-
-生成的结果：
-server {
-    listen web1
-}
-server {
-    listen web2
-}
-server {
-    listen web3
-}
+    - name: copy conf
+      template: src=for2.conf.j2 dest=/data/for2.conf
 ```
 
-### roles
+for2.conf.j2
+
+```
+{% for p in ports %}
+server{
+	listen {{p.port}}
+	servername {{ p.name }}
+        documentroot {{ p.rootdir }}
+}
+{% endfor %}
+```
+
+执行及结果
+
+```shell
+ansible-playbook for2.yml 
+
+[root@hadoop102 ansible]# ansible all -m shell -a 'cat /data/for2.conf'
+192.168.10.104 | CHANGED | rc=0 >>
+server{
+	listen 81
+	servername web1.com
+        documentroot /data/web1
+}
+server{
+	listen 82
+	servername web2.com
+        documentroot /data/web2
+}
+server{
+	listen 83
+	servername web3.com
+        documentroot /data/web3
+}
+192.168.10.103 | CHANGED | rc=0 >>
+server{
+	listen 81
+	servername web1.com
+        documentroot /data/web1
+}
+server{
+	listen 82
+	servername web2.com
+        documentroot /data/web2
+}
+server{
+	listen 83
+	servername web3.com
+        documentroot /data/web3
+}
+[root@hadoop102 ansible]# 
+```
+
+#### 示例：for循环内嵌套if
+
+for3.yml
+
+```yaml
+---
+- hosts: hadoop
+  remote_user: root
+  vars:
+    ports:
+      - web1:
+        port: 81
+        #name: web1.com
+        rootdir: /data/web1
+      - web2:
+        port: 82
+        name: web2.com
+        rootdir: /data/web2
+      - web3:
+        port: 83
+        #name: web3.com
+        rootdir: /data/web3
+  tasks:
+    - name: copy conf
+      template: src=for3.conf.j2 dest=/data/for3.conf
+      
+```
+
+for3.conf.j2
+
+```
+{% for p in ports %}
+server{
+	listen {{p.port}}
+	{%if p.name is defined %}
+		servername {{ p.name }}
+	{%endif%}
+    documentroot {{ p.rootdir }}
+}
+{% endfor %}
+```
+
+执行及结果
+
+```shell
+[root@hadoop102 ansible]# ansible-playbook for3.yml 
+
+PLAY [hadoop] *****************************************************************************************************************
+
+TASK [Gathering Facts] ********************************************************************************************************
+ok: [192.168.10.104]
+ok: [192.168.10.103]
+
+TASK [copy conf] **************************************************************************************************************
+changed: [192.168.10.104]
+changed: [192.168.10.103]
+
+PLAY RECAP ********************************************************************************************************************
+192.168.10.103             : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+192.168.10.104             : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+[root@hadoop102 ansible]# 
+[root@hadoop102 ansible]# 
+[root@hadoop102 ansible]# 
+[root@hadoop102 ansible]# ansible all -m shell -a 'cat /data/for3.conf'
+192.168.10.104 | CHANGED | rc=0 >>
+server{
+	listen 81
+	    documentroot /data/web1
+}
+server{
+	listen 82
+			servername web2.com
+	    documentroot /data/web2
+}
+server{
+	listen 83
+	    documentroot /data/web3
+}
+192.168.10.103 | CHANGED | rc=0 >>
+server{
+	listen 81
+	    documentroot /data/web1
+}
+server{
+	listen 82
+			servername web2.com
+	    documentroot /data/web2
+}
+server{
+	listen 83
+	    documentroot /data/web3
+}
+[root@hadoop102 ansible]#
+```
+
+### 角色Roles
+
+类比：ad-hoc 单条shell命令，playbook一个shell脚本，role一堆shell脚本
+
 ```
 roles
     ansible自1.2版本引入的新特性，用于层次性、结构化地组织playbook。
     roles能够根据层次型结构自动装载变量文件、tasks以及handlers等。
     要使用roles只需要在playbook中使用include指令即可。
-    简单来讲，roles就是通过分别将变量、文件、任务、模板及处理器放置于单独的目录中，
+    简单来讲，roles就是通过分别将变量、文件、task、模板templates及处理器handlers放置于单独的目录中，
     并可以便捷地include它们的一种机制。
     角色一般用于基于主机构建服务的场景中，但也可以是用于构建守护进程等场景中
 
@@ -2053,7 +2346,6 @@ roles
     某些功能需多个Playbook，通过includes即可实现
 ```
 
-### Roles
 ```
 角色(roles)：角色集合
 roles/
@@ -2066,9 +2358,7 @@ roles/
 ```
 
 ### Ansible Roles目录编排
-![image](https://note.youdao.com/yws/res/100101/63539E099AD1483D87CD28CBD473463B) 
-
-
+![image](./img/Roles目录编排.png) 
 
 ### roles目录结构
 ```

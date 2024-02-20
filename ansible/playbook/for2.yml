@@ -1,0 +1,21 @@
+---
+- hosts: hadoop
+  remote_user: root
+  vars:
+    ports:
+      - web1:
+        port: 81
+        name: web1.com
+        rootdir: /data/web1
+      - web2:
+        port: 82
+        name: web2.com
+        rootdir: /data/web2
+      - web3:
+        port: 83
+        name: web3.com
+        rootdir: /data/web3
+  tasks:
+    - name: copy conf
+      template: src=for2.conf.j2 dest=/data/for2.conf
+      
