@@ -1,0 +1,3 @@
+- name: copy conf
+  template: src=memcached.j2 dest=/etc/sysconfig/memcached
+  notify: restart service

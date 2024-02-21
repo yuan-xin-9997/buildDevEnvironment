@@ -1,0 +1,9 @@
+---
+- hosts: hadoop
+  remote_user: root
+  roles:
+    - { role: nginx ,tags: [ 'nginx', 'web' ], when: ansible_distribution_major_version == "6“ }
+    - { role: httpd ,tags: [ 'httpd', 'web' ] }
+    - { role: mysql ,tags: [ 'mysql', 'db' ] }
+    - { role: marridb ,tags: [ 'mysql', 'db' ] }
+    - { role: php }

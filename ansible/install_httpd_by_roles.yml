@@ -1,0 +1,6 @@
+- name: install httpd by roles
+  remote_user: root
+  hosts: hadoop
+
+  roles:
+    - role: httpd

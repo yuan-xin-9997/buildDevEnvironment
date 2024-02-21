@@ -1,0 +1,5 @@
+- name: install nginx by roles
+  hosts: hadoop
+  remote_user: root
+  roles:
+    - role: nginx

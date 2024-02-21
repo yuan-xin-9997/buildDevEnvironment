@@ -1003,7 +1003,7 @@ Notify此action可用于在每个play的最后被触发，
 在notify中列出的操作称为handler，也即notify中调用handler中定义的操作
 ```
 
-### Playbook中handlers使用
+### Playbook中处理器handlers使用
 
 改进：配置文件一旦发生变化，将重启服务
 
@@ -1075,7 +1075,7 @@ Notify此action可用于在每个play的最后被触发，
       shell: killall -0 nginx > /tmp/nginx.log
 ```
 
-### Playbook中tags使用 
+### Playbook中标签tags使用 
 
 tage: 添加标签 
 可以指定某一个任务添加一个标签,添加标签以后,想执行某个动作可以做出挑选来执行
@@ -2357,29 +2357,32 @@ roles/
 可以互相调用
 ```
 
-### Ansible Roles目录编排
+#### Ansible Roles目录编排
+
 ![image](./img/Roles目录编排.png) 
 
-### roles目录结构
+#### roles目录结构
+
 ```
 每个角色，以特定的层级目录结构进行组织
 roles目录结构：
 
-playbook.yml  调用角色
+playbook.yml  剧本，调用角色
 roles/
-  project/ (角色名称)
-    tasks/
-    files/
-    vars/
-    templates/
-    handlers/
-    default/ 不常用
-    meta/    不常用
+    project/ (角色名称)
+       tasks/
+       files/
+       vars/
+       templates/
+       handlers/
+       default/ 不常用
+       meta/    不常用
 ```
 
-### Roles各目录作用
+#### Roles各目录作用
+
 ```
-/roles/project/ :项目名称,有以下子目录
+roles/project/ :项目名称,有以下子目录
     files/ ：存放由copy或script模块等调用的文件
     templates/：template模块查找所需要模板文件的目录
     tasks/：定义task,role的基本元素，至少应该包含一个名为main.yml的文件；
@@ -2413,7 +2416,8 @@ roles/example_role/meta/main.yml：    roles所有依赖将被正常登入
 
 ```
 
-### 创建role
+#### 创建role
+
 ```
 创建role的步骤
 (1) 创建以roles命名的目录
@@ -2423,7 +2427,8 @@ roles/example_role/meta/main.yml：    roles所有依赖将被正常登入
 (4) 在playbook文件中，调用各角色
 ```
 
-### 实验: 创建httpd角色
+#### 实验: 创建httpd角色
+
 ```
 1> 创建roles目录
    mkdir roles/{httpd,mysql,redis}/tasks -pv
@@ -2547,7 +2552,8 @@ roles/
     └── vars
         └── main.yml
 ```
-### 示例
+#### 示例
+
 ```
 roles的示例如下所示：
 site.yml
@@ -2570,7 +2576,8 @@ roles/
     meta/
 ```
 
-### 实验： 创建一个nginx角色
+#### 实验： 创建一个nginx角色
+
 ```
 建立nginx角色在多台主机上来部署nginx需要安装 创建账号
 1> 创建nginx角色目录
@@ -2635,14 +2642,7 @@ roles/
    ansible-playbook role_nginx.yml
 ```
 
-### Roles案例
-Roles目录编排    
-![image](https://note.youdao.com/yws/res/100102/31BB6620C07C4E8DAEC14CB20CF8C573)
-
-Playbook中调用     
-![image](https://note.youdao.com/yws/res/100105/B2206BA3F50D46ACBCC941F778A2C845)
-
-### playbook调用角色
+### playbook调用角色role
 ```
 调用角色方法1：
 - hosts: websrvs
@@ -2660,15 +2660,16 @@ Playbook中调用
   roles:
     - mysql
     - { role: nginx, username: nginx }   #不同的角色调用不同的变量  
-    键role用于指定角色名称
-    后续的k/v用于传递变量给角色
+    # 键role用于指定角色名称
+    # 后续的k/v用于传递变量给角色（在role中定义变量）
 
-调用角色方法3：还可基于条件测试实现角色调用
+调用角色方法3：还可基于条件测试实现角色调用（在role中定义变量）
 roles:
   - { role: nginx, username: nginx, when: ansible_distribution_major_version == '7' }
 ```
 
-### 通过roles传递变量
+#### 通过roles传递变量（在roles中定义变量）
+
 ```
 通过roles传递变量
 当给一个主机应用角色的时候可以传递变量，然后在角色内使用这些变量
@@ -2679,7 +2680,8 @@ roles:
     - { role: foo_app_instance, dir: '/web/htdocs/a.com', port: 8080 }
 ```
 
-### 向roles传递参数
+#### 向roles传递参数（在role中定义变量）
+
 ```
 而在playbook中，可以这样使用roles：
 ---
@@ -2698,7 +2700,8 @@ roles:
     - { role: foo_app_instance, dir: '/opt/b', port: 5001 }
 ```
 
-### 条件式地使用roles
+#### 条件式地使用roles
+
 ```
 甚至也可以条件式地使用roles
 示例：
@@ -2708,11 +2711,13 @@ roles:
     - { role: some_role, when: "ansible_os_family == 'RedHat'" }
 ```
 
-### Roles条件及变量等案例
+#### Roles条件及变量等案例（在role中定义变量）
+
 ```
 When条件
     roles:
-      - {role: nginx, when: "ansible_distribution_major_version == '7' " ,username: nginx }
+      - {role: nginx, when: "ansible_distribution_major_version == '7' " , username: nginx }
+      
 变量调用
 - hosts: zabbix-proxy
   sudo: yes
@@ -2756,24 +2761,29 @@ ls roles/nginx/files/
 tom.conf
 ```
 
-### roles playbook tags使用
-```
-roles playbook tags使用
-    ansible-playbook --tags="nginx,httpd,mysql" nginx-role.yml  对标签进行挑选执行
+### roles playbook tags使用（注意对比playbook task内的标签）
 
-// nginx-role.yml
+nginx-role.yml
+
+```yaml
 ---
-- hosts: testweb
+- hosts: hadoop
   remote_user: root
   roles:
-    - { role: nginx ,tags: [ 'nginx', 'web' ] ,when: ansible_distribution_major_version == "6“ }
+    - { role: nginx ,tags: [ 'nginx', 'web' ], when: ansible_distribution_major_version == "6“ }
     - { role: httpd ,tags: [ 'httpd', 'web' ] }
     - { role: mysql ,tags: [ 'mysql', 'db' ] }
     - { role: marridb ,tags: [ 'mysql', 'db' ] }
     - { role: php }
 ```
 
-### 实验: 创建角色memcached
+```shell
+# roles playbook tags使用
+ansible-playbook --tags="nginx,httpd,mysql" nginx-role.yml  对标签进行挑选执行
+```
+
+#### 实验: 创建角色memcached
+
 ```
 memcacched 当做缓存用,会在内存中开启一块空间充当缓存
 cat /etc/sysconfig/memcached 
@@ -2828,48 +2838,8 @@ cat /etc/sysconfig/memcached
    memcached端口号11211
 ```
 
-### 其它功能
-```
-委任（指定某一台机器做某一个task）
-    delegate_to
-    local_action (专指针对ansible命令执行的机器做的变更操作)
-交互提示
-    prompt
-*暂停（java）
-    wait_for
-Debug
-    debug: msg="This always executes."
-Include
-Template 多值合并
-Template 动态变量配置
-```
+#### 实验: 实现二进制安装mysql的卸载
 
-### Ansible Roles
-```
-委任
-    delegate_to
-交互提示
-    prompt
-暂停
-    wait_for
-Debug
-    debug: msg="This always executes."
-Include
-Template 多值合并
-Template 动态变量配置
-```
-
-### 推荐资料
-```
-http://galaxy.ansible.com
-https://galaxy.ansible.com/explore#/
-http://github.com/
-http://ansible.com.cn/
-https://github.com/ansible/ansible
-https://github.com/ansible/ansible-examples
-```
-
-### 实验: 实现二进制安装mysql的卸载
 ```
 cat remove_mysql.yml 
 ---
@@ -2893,6 +2863,51 @@ cat remove_mysql.yml
         - /data/mysql
 
 ansible-playbook  remove_mysql.yml
+```
+
+
+
+### Ansible Roles 其它功能
+
+```
+委任（指定某一台机器做某一个task）
+    delegate_to
+    local_action (专指针对ansible命令执行的机器做的变更操作)
+交互提示
+    prompt
+*暂停（java）
+    wait_for
+Debug
+    debug: msg="This always executes."
+Include
+Template 多值合并
+Template 动态变量配置
+```
+
+
+
+```
+委任
+    delegate_to
+交互提示
+    prompt
+暂停
+    wait_for
+Debug
+    debug: msg="This always executes."
+Include
+Template 多值合并
+Template 动态变量配置
+```
+
+### 推荐资料
+```
+http://galaxy.ansible.com
+https://galaxy.ansible.com/explore#/
+http://github.com/
+http://ansible.com.cn/
+https://github.com/ansible/ansible
+https://github.com/ansible/ansible-examples
 ```
 
 
